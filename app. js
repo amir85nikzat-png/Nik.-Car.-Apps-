@@ -1,0 +1,157 @@
+/*
+ Nik Car - panel navigation + Supabase bootstrap
+ Publishable key only. Never put service_role/secret keys in browser code.
+*/
+const SUPABASE_URL = "https://umjpejiynhsdfncedfky.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_4UAZIlBu71esHRstqh_xKQ_eVxSFFeZ";
+
+const provinceNames=["آذربایجان شرقی","آذربایجان غربی","اردبیل","اصفهان","البرز","ایلام","بوشهر","تهران","چهارمحال و بختیاری","خراسان جنوبی","خراسان رضوی","خراسان شمالی","خوزستان","زنجان","سمنان","سیستان و بلوچستان","فارس","قزوین","قم","کردستان","کرمان","کرمانشاه","کهگیلویه و بویراحمد","گلستان","گیلان","لرستان","مازندران","مرکزی","هرمزگان","همدان","یزد"];
+
+const province=document.querySelector('#province');
+if(province) provinceNames.forEach(n=>{
+  const o=document.createElement('option');
+  o.value=n;
+  o.textContent=n;
+  province.append(o);
+});
+
+const portalView=document.querySelector('#portal-view');
+const portalTitle=document.querySelector('#portal-title');
+const portalKicker=document.querySelector('#portal-kicker');
+const portalDescription=document.querySelector('#portal-description');
+const portalContent=document.querySelector('#portal-content');
+const main=document.querySelector('main');
+const modal=document.querySelector('#modal');
+const statusEl=document.querySelector('#connection-status');
+
+const portalTemplates={
+ customer:{
+  title:'پنل مشتری',
+  kicker:'CUSTOMER PANEL',
+  description:'ثبت درخواست و پیگیری خدمات برق و مکانیک خودرو',
+  content:`<div class="portal-grid">
+    <article class="portal-card"><span>＋</span><h3>ثبت درخواست جدید</h3><p>درخواست خدمات برق خودرو یا مکانیک را ثبت کنید.</p><button type="button" class="gold" data-panel-action="new-request">شروع ثبت درخواست</button></article>
+    <article class="portal-card"><span>◷</span><h3>پیگیری درخواست‌ها</h3><p>وضعیت درخواست‌های قبلی خود را دنبال کنید.</p><button type="button" class="outline" data-panel-action="track">مشاهده وضعیت</button></article>
+    <article class="portal-card"><span>♙</span><h3>اطلاعات حساب</h3><p>مشاهده و تکمیل اطلاعات حساب مشتری.</p><button type="button" class="outline" data-panel-action="profile">اطلاعات حساب</button></article>
+  </div>
+  <div class="portal-subview" id="portal-subview"><h3>به پنل مشتری نیک‌کار خوش آمدید</h3><p>برای شروع، یکی از بخش‌های بالا را انتخاب کنید.</p></div>`
+ },
+ driver:{
+  title:'پنل متخصص',
+  kicker:'SERVICE PROFESSIONAL PANEL',
+  description:'مدیریت تخصص، درخواست‌های دریافتی و وضعیت همکاری',
+  content:`<div class="portal-grid">
+    <article class="portal-card"><span>▣</span><h3>درخواست‌های قابل بررسی</h3><p>درخواست‌های مرتبط با تخصص شما در این قسمت نمایش داده می‌شوند.</p><button type="button" class="outline" data-panel-action="jobs">مشاهده درخواست‌ها</button></article>
+    <article class="portal-card"><span>⚙</span><h3>اطلاعات تخصص</h3><p>ثبت تخصص برق خودرو، مکانیک یا جلوبندی.</p><button type="button" class="gold" data-panel-action="specialty">تکمیل تخصص</button></article>
+    <article class="portal-card"><span>◉</span><h3>وضعیت همکاری</h3><p>وضعیت بررسی و تأیید حساب متخصص.</p><button type="button" class="outline" data-panel-action="approval">بررسی وضعیت</button></article>
+  </div>
+  <div class="portal-subview" id="portal-subview"><h3>پنل همکاری متخصصان</h3><p>برای دریافت درخواست واقعی، ابتدا باید حساب شما ثبت و توسط مدیریت تأیید شود.</p></div>`
+ },
+ admin:{
+  title:'پنل مدیریت',
+  kicker:'ADMINISTRATION',
+  description:'مدیریت کاربران، متخصصان و درخواست‌های نیک‌کار',
+  content:`<div class="portal-grid">
+    <article class="portal-card"><span>♙</span><h3>مدیریت متخصصان</h3><p>بررسی درخواست همکاری و وضعیت تأیید متخصصان.</p><button type="button" class="outline" data-panel-action="drivers">مدیریت متخصصان</button></article>
+    <article class="portal-card"><span>▤</span><h3>مدیریت درخواست‌ها</h3><p>مشاهده و پیگیری درخواست‌های خدمات خودرو.</p><button type="button" class="outline" data-panel-action="requests">درخواست‌ها</button></article>
+    <article class="portal-card"><span>▦</span><h3>گزارش سامانه</h3><p>نمای کلی عملکرد و اطلاعات سامانه.</p><button type="button" class="outline" data-panel-action="reports">گزارش‌ها</button></article>
+  </div>
+  <div class="portal-subview" id="portal-subview"><h3>مدیریت نیک‌کار</h3><p>برای مشاهده و تغییر اطلاعات واقعی، ورود مدیر و دسترسی‌های دیتابیس باید فعال شود.</p></div>`
+ }
+};
+
+function openPortal(role){
+ const data=portalTemplates[role];
+ if(!data || !portalView || !main) return;
+
+ portalTitle.textContent=data.title;
+ portalKicker.textContent=data.kicker;
+ portalDescription.textContent=data.description;
+ portalContent.innerHTML=data.content;
+
+ main.hidden=true;
+ portalView.hidden=false;
+
+ if(modal) modal.classList.remove('show');
+ window.scrollTo({top:0,behavior:'instant'});
+}
+
+function closePortal(){
+ if(portalView) portalView.hidden=true;
+ if(main) main.hidden=false;
+ window.scrollTo({top:0,behavior:'instant'});
+}
+
+document.querySelectorAll('[data-role]').forEach(button=>{
+ button.addEventListener('click',()=>{
+  openPortal(button.dataset.role);
+ });
+});
+
+document.querySelector('#portal-back')?.addEventListener('click',closePortal);
+
+document.querySelector('#menu')?.addEventListener('click',()=>{
+ document.querySelector('#nav')?.classList.toggle('open');
+});
+
+document.querySelectorAll('nav a').forEach(a=>{
+ a.addEventListener('click',()=>{
+  document.querySelector('#nav')?.classList.remove('open');
+ });
+});
+
+const actionMessages={
+ 'new-request':['ثبت درخواست جدید','برای ثبت واقعی درخواست، ابتدا باید ورود مشتری و فرم متصل به دیتابیس فعال شود.'],
+ track:['پیگیری درخواست‌ها','پس از ورود مشتری، درخواست‌های ثبت‌شده شما در این قسمت نمایش داده می‌شوند.'],
+ profile:['اطلاعات حساب','اطلاعات حساب پس از ورود امن از پروفایل شما بارگذاری می‌شود.'],
+ jobs:['درخواست‌های متخصص','درخواست‌های واقعی پس از تأیید حساب و اتصال به سامانه نمایش داده می‌شوند.'],
+ specialty:['تخصص و مهارت','در مرحله بعد فرم تکمیل تخصص و اطلاعات همکاری به دیتابیس متصل می‌شود.'],
+ approval:['وضعیت تأیید','حساب متخصص باید توسط مدیریت بررسی و تأیید شود.'],
+ drivers:['مدیریت متخصصان','فهرست متخصصان پس از ورود مدیر از دیتابیس خوانده می‌شود.'],
+ requests:['مدیریت درخواست‌ها','درخواست‌های مشتریان پس از اتصال پنل مدیریت نمایش داده می‌شوند.'],
+ reports:['گزارش‌های سامانه','گزارش‌های واقعی پس از فعال‌سازی دسترسی مدیریت در دسترس خواهند بود.']
+};
+
+document.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-panel-action]');
+ if(!btn) return;
+
+ const item=actionMessages[btn.dataset.panelAction];
+ const sub=document.querySelector('#portal-subview');
+
+ if(item && sub){
+  sub.innerHTML=`<h3>${item[0]}</h3><p>${item[1]}</p>`;
+ }
+});
+
+let supabaseClient=null;
+
+async function initSupabase(){
+ try{
+  if(!window.supabase?.createClient){
+   throw new Error('کتابخانه Supabase در دسترس نیست.');
+  }
+
+  supabaseClient=window.supabase.createClient(
+   SUPABASE_URL,
+   SUPABASE_PUBLISHABLE_KEY
+  );
+
+  const {error}=await supabaseClient.auth.getSession();
+  if(error) throw error;
+
+  if(statusEl){
+   statusEl.textContent='اتصال به پروژه نیک‌کار برقرار شد';
+   statusEl.style.color='#bfe6a7';
+  }
+
+ }catch(err){
+  if(statusEl){
+   statusEl.textContent='اتصال دیتابیس برقرار نشد؛ پنل‌ها در حالت نمایشی هستند';
+   statusEl.style.color='#ffb3a8';
+  }
+  console.warn('Supabase initialization:',err);
+ }
+}
+
+initSupabase();
